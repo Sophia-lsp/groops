@@ -244,6 +244,9 @@ VariationalEquationArc PreprocessingVariationalEquation::computeArc(UInt arcNo)
     std::vector<Vector3d> force(orbit.size());
     for(UInt k=0; k<orbit.size(); k++)
     {
+      // 直接从轨道读取加速度，作为初始的force值
+      force.at(k) = orbit.at(k).acceleration;
+      
       // forces are returned in TRF, rotate to CRF
       force.at(k) = rotEarth.at(k).inverseRotate(forces->acceleration(satellite, orbit.at(k).time, orbit.at(k).position, orbit.at(k).velocity,
                                          starCamera.at(k).rotary, rotEarth.at(k), earthRotation, ephemerides));
