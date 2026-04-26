@@ -2,3 +2,6 @@
 # -------------
 *.*~
 *.bak
+/lib
+/scenario
+/data
