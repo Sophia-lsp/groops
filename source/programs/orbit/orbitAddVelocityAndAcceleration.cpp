@@ -85,7 +85,30 @@ void OrbitAddVelocityAndAcceleration::run(Config &config, Parallel::Communicator
         }
         idx = idxOpt;
 
-        // polynomial interpolation
+        // polynomial interpolation——orbit
+        // ------------------------
+        // Matrix A(degree+1, degree+1);
+        // for(UInt k=0; k<degree+1; k++)
+        // {
+        //   const Double factor = (orbit.at(idx+k).time-orbit.at(idEpoch).time).seconds();
+        //   A(0,k) = 1.0;
+        //   for(UInt n=1; n<=degree; n++)
+        //     A(n,k) = factor * A(n-1,k);
+        // }
+        // Matrix coeff(degree+1, 2);
+        // coeff(1, 0) = 1.; // velocity
+        // coeff(2, 1) = 2.; // acceleration
+        // solveInPlace(A, coeff);
+
+        // orbit.at(idEpoch).velocity     = Vector3d();
+        // orbit.at(idEpoch).acceleration = Vector3d();
+        // for(UInt k=0; k<coeff.rows(); k++)
+        // {
+        //   orbit.at(idEpoch).velocity     += coeff(k,0) * orbit.at(idx+k).position;
+        //   orbit.at(idEpoch).acceleration += coeff(k,1) * orbit.at(idx+k).position;
+        // }
+
+        // polynomial interpolation——velocity
         // ------------------------
         Matrix A(degree+1, degree+1);
         for(UInt k=0; k<degree+1; k++)
@@ -95,18 +118,86 @@ void OrbitAddVelocityAndAcceleration::run(Config &config, Parallel::Communicator
           for(UInt n=1; n<=degree; n++)
             A(n,k) = factor * A(n-1,k);
         }
-        Matrix coeff(degree+1, 2);
-        coeff(1, 0) = 1.; // velocity
-        coeff(2, 1) = 2.; // acceleration
+        Matrix coeff(degree+1, 1);
+        coeff(1, 0) = 1.; // acceleration
         solveInPlace(A, coeff);
 
-        orbit.at(idEpoch).velocity     = Vector3d();
         orbit.at(idEpoch).acceleration = Vector3d();
         for(UInt k=0; k<coeff.rows(); k++)
         {
-          orbit.at(idEpoch).velocity     += coeff(k,0) * orbit.at(idx+k).position;
-          orbit.at(idEpoch).acceleration += coeff(k,1) * orbit.at(idx+k).position;
+          orbit.at(idEpoch).acceleration += coeff(k,0) * orbit.at(idx+k).velocity;
         }
+
+        // Lagrange interpolation——orbit
+        // ------------------------
+        // const double dt = 0.025;  // half step for central difference (total step 0.05 s)
+        // Time dt_time = seconds2time(dt);
+
+        // std::vector<Time>   times(degree+1);
+        // std::vector<Vector3d> pos(degree+1);
+        // for(UInt k=0; k<=degree; ++k) {
+        //   times[k] = orbit.at(idx+k).time;
+        //   pos[k]   = orbit.at(idx+k).position;
+        // }
+
+        // auto lagrangeInterp = [&](const Time& t) -> Vector3d {
+        //   Vector3d result(0,0,0);
+        //   for(UInt i=0; i<=degree; ++i) {
+        //     double L = 1.0;
+        //     for(UInt j=0; j<=degree; ++j) {
+        //       if(j==i) continue;
+        //       L *= (t - times[j]).seconds() / (times[i] - times[j]).seconds();
+        //     }
+        //     result += L * pos[i];
+        //   }
+        //   return result;
+        // };
+
+        // Time t_curr = orbit.at(idEpoch).time;
+        // Time t_minus = t_curr - dt_time;
+        // Time t_plus  = t_curr + dt_time;
+        // Vector3d r_curr = lagrangeInterp(t_curr);
+        // Vector3d r_minus = lagrangeInterp(t_minus);
+        // Vector3d r_plus  = lagrangeInterp(t_plus);
+
+        // orbit.at(idEpoch).velocity     = (r_plus - r_minus) / (2.0 * dt);
+        // orbit.at(idEpoch).acceleration = (r_plus - 2.0 * r_curr + r_minus) / (dt * dt);
+
+        // Lagrange interpolation——velocity
+        // ------------------------
+        // const double dt = 0.025;  // half step for central difference (total step 0.05 s)
+        // Time dt_time = seconds2time(dt);
+
+        // std::vector<Time>     velocityTimes(degree+1);
+        // std::vector<Vector3d> velocities(degree+1);
+        // for(UInt k=0; k<=degree; ++k)
+        // {
+        //   velocityTimes[k] = orbit.at(idx+k).time;
+        //   velocities[k]   = orbit.at(idx+k).velocity;
+        // }
+
+        // auto lagrangeVelocityInterp = [&](const Time &t) -> Vector3d
+        // {
+        //   Vector3d result(0,0,0);
+        //   for(UInt i=0; i<=degree; ++i)
+        //   {
+        //     Double L = 1.0;
+        //     for(UInt j=0; j<=degree; ++j)
+        //     {
+        //       if(j==i) continue;
+        //       L *= (t-velocityTimes[j]).seconds() / (velocityTimes[i]-velocityTimes[j]).seconds();
+        //     }
+        //     result += L * velocities[i];
+        //   }
+        //   return result;
+        // };
+
+        // Time t_curr = orbit.at(idEpoch).time;
+        // Time t_minus = t_curr - dt_time;
+        // Time t_plus  = t_curr + dt_time;
+        // const Vector3d v_minus = lagrangeVelocityInterp(t_minus);
+        // const Vector3d v_plus  = lagrangeVelocityInterp(t_plus);
+        // orbit.at(idEpoch).acceleration = (v_plus-v_minus) / (2.0*dt);
       }
       return orbit;
     }, comm);
