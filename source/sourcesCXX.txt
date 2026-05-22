@@ -436,6 +436,7 @@ programs/orbit/orbit2Kepler.cpp
 programs/orbit/orbit2MagneticField.cpp
 programs/orbit/orbit2ThermosphericState.cpp
 programs/orbit/orbitAddVelocityAndAcceleration.cpp
+programs/orbit/orbitIntegrateAcceleration.cpp
 programs/orbit/planetOrbit.cpp
 programs/plot/plotDegreeAmplitudes.cpp
 programs/plot/plotGraph.cpp
