@@ -45,11 +45,16 @@ void OrbitAddVelocityAndAcceleration::run(Config &config, Parallel::Communicator
   {
     FileName fileNameOut, fileNameIn;
     UInt     degree;
+    // UInt     degree, velocityPointCount;
 
     readConfig(config, "outputfileOrbit",  fileNameOut, Config::MUSTSET, "", "");
     readConfig(config, "inputfileOrbit",   fileNameIn,  Config::MUSTSET, "", "");
     readConfig(config, "polynomialDegree", degree,      Config::DEFAULT, "8", "Polynomial degree, must be even!");
+    // readConfig(config, "velocityPointCount", velocityPointCount, Config::DEFAULT, "11", "number of velocity data points for least squares fit");
     if(isCreateSchema(config)) return;
+
+    // if(velocityPointCount < degree+1)
+    //   throw(Exception("velocityPointCount must be at least polynomialDegree+1."));
 
     // ======================================================
 
@@ -198,6 +203,48 @@ void OrbitAddVelocityAndAcceleration::run(Config &config, Parallel::Communicator
         // const Vector3d v_minus = lagrangeVelocityInterp(t_minus);
         // const Vector3d v_plus  = lagrangeVelocityInterp(t_plus);
         // orbit.at(idEpoch).acceleration = (v_plus-v_minus) / (2.0*dt);
+
+        // leastSquares polynomial interpolation——velocity
+        // ------------------------
+        // find optimal interval
+        // ---------------------
+        // while((idx+velocityPointCount-1 < orbit.size()) && (orbit.at(idx+velocityPointCount-1).time < orbit.at(idEpoch).time))
+        //   idx++;
+        // if(idx+velocityPointCount-1 >= orbit.size())
+        //   break;
+
+        // UInt   idxOpt   = MAX_UINT;
+        // Double deltaOpt = 1e99;
+        // while((idx+velocityPointCount-1 < orbit.size()) && (orbit.at(idx).time <= orbit.at(idEpoch).time))
+        // {
+        //   // interpolation point should be in the mid of the interval
+        //   // => search minimum of the difference of the time before and after the interpolation point
+        //   const Double delta = std::fabs(((orbit.at(idx+velocityPointCount-1).time-orbit.at(idEpoch).time)-(orbit.at(idEpoch).time-orbit.at(idx).time)).seconds());
+        //   if(delta <= deltaOpt)
+        //   {
+        //     idxOpt   = idx;
+        //     deltaOpt = delta;
+        //   }
+        //   idx++;
+        // }
+        // idx = idxOpt;
+        
+        // Matrix A(velocityPointCount, degree+1);
+        // Matrix obs(velocityPointCount, 3);
+        // for(UInt k=0; k<velocityPointCount; k++)
+        // {
+        //   const Double factor = (orbit.at(idx+k).time-orbit.at(idEpoch).time).seconds();
+        //   A(k,0) = 1.0;
+        //   for(UInt n=1; n<=degree; n++)
+        //     A(k,n) = factor * A(k,n-1);
+
+        //   obs(k,0) = orbit.at(idx+k).velocity.x();
+        //   obs(k,1) = orbit.at(idx+k).velocity.y();
+        //   obs(k,2) = orbit.at(idx+k).velocity.z();
+        // }
+
+        // Matrix coeff = leastSquares(A, obs);
+        // orbit.at(idEpoch).acceleration = Vector3d(coeff(1,0), coeff(1,1), coeff(1,2));
       }
       return orbit;
     }, comm);
